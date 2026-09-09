@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Marrow is a GPU tetrahedral soft body for Blender 5.2: a stable neo-Hookean XPBD system in GLSL compute shaders, with no compiled extension and no external dependency.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪼</text></svg>">
-<title>Marrow Handbook</title>
+<meta name="description" content="Documentation for Marrow 2.15.0, a GPU tetrahedral soft body system for Blender 5.2 built on neo-Hookean XPBD and GLSL compute shaders.">
+<meta name="theme-color" content="#0C110F">
+<link rel="icon" href="/marrow-icon.svg" type="image/svg+xml">
+<title>Marrow 2.15.0 Handbook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Schibsted+Grotesk:wght@500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -71,6 +72,21 @@ body {
   outline-offset: 2px;
   border-radius: 1px;
 }
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 30;
+  padding: 8px 12px;
+  background: var(--ochre);
+  color: var(--ground);
+  font: 700 13px/1.4 var(--display);
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus { transform: translateY(0); }
 
 /* ---- plate shell -------------------------------------------- */
 
@@ -372,14 +388,133 @@ figure.plate > figcaption {
 .leader { stroke: var(--ochre-dim); stroke-width: 1; fill: none; }
 .leader-no { font-family: var(--data); font-size: 12px; fill: var(--ochre); }
 
-/* ---- figure II: the wave ------------------------------------- */
+/* ---- interactive laboratory plates -------------------------- */
 
-#wave {
+#wave, #qs-demo, #collider-demo {
   display: block;
   width: 100%;
-  height: 210px;
   background: var(--plate);
   border: 1px solid var(--rule);
+  touch-action: none;
+}
+
+#wave { height: 230px; }
+#qs-demo { height: 280px; }
+#collider-demo { height: 330px; cursor: crosshair; }
+#collider-demo:focus-visible { outline-offset: -3px; }
+
+.lab-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-top: 0;
+  background: var(--plate-2);
+}
+
+.lab-control {
+  min-width: 0;
+  padding: 12px 15px;
+  border-right: 1px solid var(--rule);
+}
+
+.lab-control:last-child { border-right: 0; }
+.lab-control.wide { grid-column: span 2; }
+
+.lab-control label,
+.lab-control .control-label,
+.lab-readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.lab-control output,
+.lab-readout strong {
+  font-family: var(--data);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ochre);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-control input[type="range"] {
+  width: 100%;
+  height: 18px;
+  margin: 8px 0 0;
+  accent-color: var(--ochre);
+  cursor: ew-resize;
+}
+
+.lab-actions,
+.segmented {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  margin-top: 7px;
+}
+
+.lab-button,
+.segmented label {
+  min-height: 31px;
+  padding: 6px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--plate);
+  color: var(--ink-2);
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.lab-button:hover,
+.lab-button[aria-pressed="true"],
+.segmented label:has(input:checked) {
+  border-color: var(--ochre-dim);
+  background: var(--ochre-wash);
+  color: var(--ink);
+}
+
+.segmented { flex-wrap: wrap; }
+.segmented label { position: relative; display: inline-flex; align-items: center; }
+.segmented input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented label:has(input:focus-visible) { outline: 2px solid var(--ochre); outline-offset: 2px; }
+
+.lab-note {
+  margin: 0;
+  padding: 10px 15px;
+  border: 1px solid var(--rule);
+  border-top: 0;
+  color: var(--ink-3);
+  font-family: var(--data);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.lab-note strong { font-family: var(--display); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+
+@media (max-width: 680px) {
+  .lab-controls { grid-template-columns: minmax(0, 1fr); }
+  .lab-control, .lab-control.wide { grid-column: auto; border-right: 0; border-bottom: 1px solid var(--rule); }
+  .lab-control:last-child { border-bottom: 0; }
+  #wave { height: 210px; }
+  #qs-demo { height: 380px; }
+  #collider-demo { height: 300px; }
 }
 
 /* ---- sections ------------------------------------------------ */
@@ -643,6 +778,7 @@ footer {
   .legend { overflow: visible; }
   .specimen { grid-template-columns: minmax(0, 1fr); }
   .frontispiece { padding-top: 30px; }
+  .plate[id] { scroll-margin-top: 58px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -651,6 +787,7 @@ footer {
 </style>
 </head>
 <body>
+<a class="skip-link" href="#top">Skip to handbook</a>
 <!--
   THESIS: Marrow's documentation is a dissection, not a manual. The reader
   arrives mid-shot with a symptom, so the sheet opens on the body cut open
@@ -681,7 +818,7 @@ footer {
   <aside class="key" id="key">
     <a class="colophon" href="#top">
       <b>Marrow</b>
-      <span>2.5.1 · Blender 5.2</span>
+      <span>2.15.0 · Blender 5.2</span>
     </a>
 
     <div class="sift">
@@ -699,6 +836,7 @@ footer {
         <a href="#what">What Marrow is</a>
         <a href="#install">Install</a>
         <a href="#quickstart">Quick start</a>
+        <a href="#drag">Grabbing the body</a>
         <a href="#undo">Getting your object back</a>
       </div>
       <div class="limb">
@@ -727,6 +865,7 @@ footer {
         <a href="#failure">Failure</a>
         <a href="#regions">Per-region stiffness</a>
         <a href="#rigstiffness">Rig-driven stiffness</a>
+        <a href="#quasistatic">Quasistatic</a>
       </div>
       <div class="limb">
         <h4>Motion</h4>
@@ -745,6 +884,7 @@ footer {
       <div class="limb">
         <h4>Display</h4>
         <a href="#falsecolor">False color</a>
+        <a href="#cageview">Cage debug view</a>
       </div>
       <div class="limb">
         <h4>Internals</h4>
@@ -894,7 +1034,7 @@ footer {
 
     <section id="install">
       <h2>Install</h2>
-      <pre><code>blender --command extension install-file -r user_default --enable dist/marrow-2.5.1.zip</code></pre>
+      <pre><code>blender --command extension install-file -r user_default --enable dist/marrow-2.15.0.zip</code></pre>
       <p>Or in Blender: <strong>Edit &gt; Preferences &gt; Get Extensions &gt; Install from Disk</strong>.</p>
       <h4>Building from source</h4>
       <pre><code>blender --command extension build --source-dir marrow --output-dir dist</code></pre>
@@ -909,7 +1049,17 @@ footer {
         <li>Press play.</li>
       </ol>
       <p>That is the whole loop. <strong>Live is on by default</strong>: each frame is simulated as the timeline reaches it and cached, so scrubbing back is free and a second pass costs nothing.</p>
-      <p>To change how it behaves, edit any slider and <strong>return to the start frame</strong>. That restarts the simulation with the new settings, with no freeing and no rebaking. Measured on an RTX 5050, a live frame costs 1 to 2 ms from a 125-node cage up to a 2,744-node one, so the edit loop stays interactive.</p>
+      <p>To change how it behaves, edit a setting and <strong>return to the start frame</strong>. That restarts the simulation without freeing the cache or rebaking it. Stiffness, Volume Preservation and the fiber settings are kernel uniforms, so they land on the next frame without a restart and can be driven from a rig. Measured on an RTX 5050, a live frame costs 1 to 2 ms from a 125-node cage up to a 2,744-node one, so the edit loop stays interactive.</p>
+    </section>
+
+    <section id="drag">
+      <h2>Grabbing the body</h2>
+      <p>While a live simulation is running, press <strong>Drag</strong> in the Marrow panel, then click and hold on the body in the 3D viewport. The cage node nearest the cursor is pulled towards the mouse with a firm, springy grip while the simulation continues stepping. Release it and the body keeps the pose and momentum left by the fling.</p>
+      <p>The drag plane faces the view through the pick point. A <a href="#pinning">pin</a>, <a href="#colliders">collider</a> or the <a href="#ground">ground plane</a> still wins on the grabbed node, so pulling a body into a wall squashes it instead of clipping through. Drag needs a live simulation; the control is disabled without one.</p>
+      <div class="aside">
+        <span class="lab">Viewport navigation</span>
+        <p>Dragging empty space orbits the view. Wheel zoom, middle-mouse orbit and numpad views keep working until a body is actually held; navigation pauses during a live grab so the drag plane stays aligned with the view used to pick it.</p>
+      </div>
     </section>
 
     <section id="undo">
@@ -1071,7 +1221,10 @@ footer {
           <tbody>
             <tr><td>Resolution</td><td>Cage cell size in world units. Smaller fills finer detail and costs more. See <a href="#coverage">Cage coverage</a>.</td></tr>
             <tr><td>Shell</td><td>Fill only this many cells inwards from the surface and leave the core hollow. 0 fills solid. See <a href="#shell">Shell</a>.</td></tr>
-            <tr><td>Substeps</td><td>XPBD substeps per frame. More is stabler and slower, and this is the most expensive knob here.</td></tr>
+            <tr><td>Substeps</td><td>XPBD substeps per frame. More is stabler and slower, and this is the most expensive knob here. Replaced by Iterations when Quasistatic is on.</td></tr>
+            <tr><td>Quasistatic</td><td>Solve for the equilibrium shape implied by the pose and discard inertia. No bounce, jiggle or overshoot. See <a href="#quasistatic">Quasistatic</a>.</td></tr>
+            <tr><td>Iterations</td><td>Constraint sweeps per frame in Quasistatic, in place of Substeps.</td></tr>
+            <tr><td>Step Scale</td><td>Multiplies the frame length for the quasistatic solve. Leave it at 1.0; values from 2.0 measured unstable. See <a href="#quasistatic">Quasistatic</a>.</td></tr>
             <tr><td>Stiffness</td><td>Resistance to distortion (deviatoric compliance). Re-read every frame, so a driver can own it. See <a href="#rigstiffness">Rig-driven stiffness</a>.</td></tr>
             <tr><td>Volume Preservation</td><td>Resistance to volume change (hydrostatic compliance). Re-read every frame, like Stiffness.</td></tr>
             <tr><td>Stiffness Group</td><td>Vertex group saying where the body is stiff. Scales both sliders above, per tet. See <a href="#regions">Per-region stiffness</a>.</td></tr>
@@ -1120,9 +1273,34 @@ footer {
 
     <section id="colliders">
       <h2>Colliders</h2>
-      <p>Each collider carries its own <strong>Shape</strong>. <strong>Mesh</strong> is the default and uses the object's actual shape, so anything works: a bowl, a hand, a floor with a lip. <strong>Sphere</strong> and <strong>Box</strong> are cheaper and exactly round or square, for when the shape really is one.</p>
+      <p>Each collider carries its own <strong>Shape</strong>. <strong>Mesh</strong> is the default and uses the object's actual shape, so anything works: a bowl, a hand, a floor with a lip. <strong>Sphere</strong> and <strong>Box</strong> are cheaper primitives. <strong>Capsule</strong> is a pill aligned to local Z: radius comes from X and Y scale and half-length from Z, making it useful for fingers, limbs and rolling pins. Keep X and Y scale equal.</p>
       <p>A mesh collider is baked once into a signed distance field, in the object's own local space. That means moving, rotating and scaling it costs nothing: the field rides the transform exactly as the primitives do. It also means concavity works properly: a node in the hole of a torus is correctly outside the solid, which a bounding box or a convex hull would get wrong.</p>
       <p>The field's grid tracks your <strong>Resolution</strong>, since it only needs to resolve detail the cage can represent. There is no separate setting.</p>
+
+      <figure class="plate" id="collider-lab">
+        <div class="plate-head">
+          <span class="plate-no">LAB&nbsp;I</span>
+          <span class="plate-title">Primitive contact field</span>
+          <span class="plate-rig">drag node · arrow keys move by one grid step</span>
+        </div>
+        <canvas id="collider-demo" tabindex="0" role="img" aria-describedby="collider-status" aria-label="Interactive collider field. Move a cage node through a sphere, box or capsule to see signed distance, surface normal and corrected contact point."></canvas>
+        <fieldset class="lab-controls" aria-label="Collider field controls">
+          <div class="lab-control wide">
+            <span class="control-label">Shape</span>
+            <div class="segmented" id="collider-shapes">
+              <label><input type="radio" name="collider-shape" value="sphere" checked>Sphere</label>
+              <label><input type="radio" name="collider-shape" value="box">Box</label>
+              <label><input type="radio" name="collider-shape" value="capsule">Capsule</label>
+            </div>
+          </div>
+          <div class="lab-control">
+            <label for="collider-scale">Local scale <output id="collider-scale-value">1.00</output></label>
+            <input id="collider-scale" type="range" min="0.70" max="1.35" step="0.05" value="1.00">
+          </div>
+        </fieldset>
+        <p class="lab-note" id="collider-status" aria-live="polite">Node is outside Sphere. Signed distance +0.00; no correction applied.</p>
+        <figcaption>An explanatory 2D slice of the primitive signed-distance field. The node is transformed into collider-local space, tested, corrected to the nearest surface if inside, then transformed back. Mesh SDFs use the same contact contract but arbitrary baked geometry.</figcaption>
+      </figure>
 
       <h3>The field is baked once and kept</h3>
       <p>It costs seconds to build, measured at <strong>11 s</strong> for a 22 m terrain on the 96-cell grid the bake caps at, so it is written beside the .blend in the same <code>blendcache_&lt;name&gt;</code> folder a bake uses, keyed by a digest of the collider's own vertices. Reopening the file reloads it in a third of a second; editing the collider misses that file and rebakes.</p>
@@ -1285,6 +1463,61 @@ footer {
       <p><strong>The Stiffness Group does not move live.</strong> The per-tet multiplier is a texture baked when the solver is built, so a repaint still takes a restart. Only the two global sliders are uniforms, which is what makes them drivable: where the body is stiff is painted, how stiff it is at all can be driven.</p>
     </section>
 
+    <section id="quasistatic">
+      <h2>Quasistatic</h2>
+      <p>Dynamic simulation asks where the body goes next from its current motion. <strong>Quasistatic</strong> asks what equilibrium shape the current pose implies. It discards inertia, so there is no bounce, overshoot or jiggle. Use it when a pose must resolve predictably for a rig, blendshape or deformer training set; do not use it for motion that depends on momentum.</p>
+      <p><strong>Iterations replaces Substeps.</strong> A dynamic frame marches through small timesteps. A quasistatic frame predicts once, then sweeps the constraints repeatedly against that state while carrying XPBD multipliers across the sweeps. Contacts, colliders, attachment and fibers stay in the loop. If one body in a colliding group is quasistatic, the whole group runs quasistatic.</p>
+
+      <figure class="plate" id="quasistatic-lab">
+        <div class="plate-head">
+          <span class="plate-no">LAB&nbsp;II</span>
+          <span class="plate-title">Route through motion versus direct equilibrium</span>
+          <span class="plate-rig">same imposed load · explanatory model</span>
+        </div>
+        <canvas id="qs-demo" role="img" aria-describedby="qs-status" aria-label="Two identical specimens under the same load. The dynamic specimen overshoots and settles while the quasistatic specimen resolves directly toward equilibrium."></canvas>
+        <fieldset class="lab-controls" aria-label="Dynamic and quasistatic comparison controls">
+          <div class="lab-control wide">
+            <label for="qs-load">Imposed load <output id="qs-load-value">65%</output></label>
+            <input id="qs-load" type="range" min="0" max="100" step="1" value="65">
+          </div>
+          <div class="lab-control">
+            <label for="qs-iterations">Iterations <output id="qs-iterations-value">20</output></label>
+            <input id="qs-iterations" type="range" min="1" max="40" step="1" value="20">
+          </div>
+          <div class="lab-control wide">
+            <span class="control-label">Impulse</span>
+            <div class="lab-actions">
+              <button class="lab-button" id="qs-apply" type="button">Apply load</button>
+              <button class="lab-button" id="qs-reset" type="button">Reset</button>
+            </div>
+          </div>
+          <div class="lab-control">
+            <span class="control-label">State</span>
+            <div class="lab-readout"><strong id="qs-state">Ready</strong></div>
+          </div>
+        </fieldset>
+        <p class="lab-note" id="qs-status" aria-live="polite">Both specimens are at rest. Set the shared load, then apply it.</p>
+        <figcaption>This is an explanatory response model, not a solver benchmark. Dynamic retains velocity and can cross equilibrium; quasistatic discards inertia and uses repeated constraint sweeps. The measured timing table below is unchanged.</figcaption>
+      </figure>
+
+      <div class="tw free">
+        <table>
+          <thead><tr><th>Setup</th><th class="n">Measured ms/frame</th></tr></thead>
+          <tbody>
+            <tr><td>Dynamic, 10 substeps</td><td class="n">1.67</td></tr>
+            <tr><td>Quasistatic, 10 iterations</td><td class="n">1.74</td></tr>
+            <tr><td>Quasistatic, 20 iterations</td><td class="n">3.49</td></tr>
+            <tr><td>Quasistatic, 40 iterations</td><td class="n">6.92</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>On the measured 1,600-tet cage, the result settled to four decimals by 10 iterations; the default 20 leaves margin. One sweep costs about one dynamic substep.</p>
+      <div class="hazard">
+        <span class="lab">Keep the solve in range</span>
+        <p>Leave <strong>Step Scale</strong> at 1.0. The tet cage measured unstable from 2.0 upward, and extra Iterations did not rescue it. Quasistatic also wants a soft material: stiff constraints remained under-converged at 200 iterations and no longer ordered like a meaningful material.</p>
+      </div>
+    </section>
+
     <section id="fiber">
       <h2>Fiber</h2>
       <p>Every tet in Marrow is otherwise isotropic: it resists distortion equally in all directions. <strong>Fiber</strong> adds one direction that is different, and drives it, the tet is told to shorten along its fiber, and the volume-preservation constraint puts the material it displaces out sideways. That sideways bulge is what makes it read as a muscle instead of a shrinking rod.</p>
@@ -1295,8 +1528,34 @@ footer {
           <span class="plate-title">The travelling contraction</span>
           <span class="plate-rig">stretch shaded in this plate's ink</span>
         </div>
-        <canvas id="wave" role="img" aria-label="A cage running a travelling fiber contraction: it shortens along the fiber, bulges sideways, and the two flanks run half a cycle apart."></canvas>
-        <figcaption>Contraction along the fiber, the volume-preserving bulge sideways, and the contralateral quarter cycle <a href="#bending">Bend</a> adds. Edges are shaded by their own stretch ratio, which is what <a href="#falsecolor">False Color</a> displays in its own rainbow, not this plate's ink.</figcaption>
+        <canvas id="wave" role="img" aria-describedby="fiber-status" aria-label="A controllable cage running a travelling fiber contraction: it shortens along the fiber, bulges sideways, and the two flanks can run half a cycle apart."></canvas>
+        <fieldset class="lab-controls" aria-label="Fiber laboratory controls">
+          <div class="lab-control">
+            <label for="fiber-activation">Activation <output id="fiber-activation-value">0.30</output></label>
+            <input id="fiber-activation" type="range" min="0" max="0.9" step="0.01" value="0.3">
+          </div>
+          <div class="lab-control">
+            <label for="fiber-wavelength">Wavelength <output id="fiber-wavelength-value">1.00 m</output></label>
+            <input id="fiber-wavelength" type="range" min="0.0001" max="10" step="0.1" value="1">
+          </div>
+          <div class="lab-control">
+            <label for="fiber-bend">Bend <output id="fiber-bend-value">1.00</output></label>
+            <input id="fiber-bend" type="range" min="0" max="1" step="0.01" value="1">
+          </div>
+          <div class="lab-control wide">
+            <span class="control-label">Clock</span>
+            <div class="lab-actions">
+              <button class="lab-button" id="fiber-play" type="button" aria-pressed="true">Pause</button>
+              <button class="lab-button" id="fiber-reset" type="button">Reset</button>
+            </div>
+          </div>
+          <div class="lab-control">
+            <span class="control-label">Phase</span>
+            <div class="lab-readout"><strong id="fiber-phase">0.00 cycles</strong></div>
+          </div>
+        </fieldset>
+        <p class="lab-note" id="fiber-status" aria-live="polite">Travelling at the documented defaults: Activation 0.30, Wavelength 1.00 m, Bend 1.00.</p>
+        <figcaption>Contraction along the fiber, the volume-preserving bulge sideways, and the contralateral quarter cycle <a href="#bending">Bend</a> adds. Controls retain Marrow's defaults and ranges: Activation 0&ndash;0.9, Wavelength hard minimum 1e-4 m (soft maximum 10 m), and Bend 0&ndash;1. Edges are shaded by their own stretch ratio, which is what <a href="#falsecolor">False Color</a> displays in its own rainbow, not this plate's ink.</figcaption>
       </figure>
 
       <p>Directions come from a <strong>Curve</strong> you point at the body. Each tet takes the tangent at the nearest point on that curve as its fiber direction, and the arclength at that point as its place in the wave, so the contraction travels from one end of the body to the other instead of the whole thing pulsing at once. Both are sampled at Tetrahedralize and frozen: a fiber direction is a property of the rest shape, so an animated curve has no meaning as a source. Change the curve and tetrahedralize again.</p>
@@ -1614,6 +1873,13 @@ footer {
       <p>While stretch display is active a generated emission material sits in slot 0; choosing <strong>Off</strong> puts the object's own material back exactly as it was, including on an object that had no material at all, and De-tetrahedralize cleans up too. The scalar is computed per tet on the CPU from the cached cage positions, so switching the mode on after a bake still colours every cached frame.</p>
     </section>
 
+    <section id="cageview">
+      <h2>Cage debug view</h2>
+      <p><strong>Cage</strong>, beside False Color in the Display box, draws the tetrahedral cage as a diagnostic view without touching the render mesh or solver. <strong>Strain</strong> moves with the simulated cage and colours each tet by the same stretch ratio False Color uses. <strong>Quality</strong> holds the cage at rest and colours mean-ratio shape quality: 1.0 is regular, while cold values expose near-degenerate tets in thin or coarsely filled features.</p>
+      <p><strong>Tetrahedra</strong> renders each tet as a separate solid cell, shrunk to 85% around its centroid. It follows the simulation and hides the skin so coarse packing and bad regions remain visible. Topology and colour are built once; later frames only move corners, measured at 2.5 ms instead of the original 34 ms full rebuild on a 3.3k-tet cage.</p>
+      <p><strong>Off</strong> removes generated edges, attributes, materials and the separate solid-view object, returning the plain rest-pose cage.</p>
+    </section>
+
     <section id="howitworks">
       <h2>How it works</h2>
       <div class="tw free">
@@ -1700,7 +1966,7 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
       <h2>Licence</h2>
       <p>GPL-3.0-or-later.</p>
       <footer>
-        Marrow 2.5.1 · Blender 5.2<br>
+        Marrow 2.15.0 · Blender 5.2<br>
         Every number on this sheet was measured, not estimated.
       </footer>
     </section>
@@ -1713,6 +1979,17 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
   "use strict";
 
   var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* Re-apply deep links after web fonts settle and stop shifting the sheet. */
+  function settleHash() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var target = id && document.getElementById(id);
+    if (target) target.scrollIntoView({ block: "start" });
+  }
+  if (location.hash) {
+    addEventListener("load", settleHash, { once: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(settleHash);
+  }
 
   /* ---- the key, on narrow screens ------------------------------ */
   var rail = document.getElementById("key");
@@ -1727,8 +2004,28 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
       opener.getAttribute("aria-expanded") === "true" ? "false" : "true");
     syncRail();
   });
+  rail.addEventListener("click", function (event) {
+    if (narrow.matches && event.target.closest("a[href^='#']")) {
+      opener.setAttribute("aria-expanded", "false");
+      syncRail();
+    }
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && narrow.matches && !rail.hidden) {
+      opener.setAttribute("aria-expanded", "false");
+      syncRail();
+      opener.focus();
+    }
+  });
   narrow.addEventListener("change", syncRail);
   syncRail();
+  if (location.hash) {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(settleHash);
+    });
+    setTimeout(settleHash, 80);
+    setTimeout(settleHash, 500);
+  }
 
   /* ---- sifting the key ----------------------------------------- */
   var q = document.getElementById("q");
@@ -1800,41 +2097,7 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
     });
   }
 
-  /* ---- Plate IV: the travelling contraction --------------------
-     Contraction along the fiber, the volume-preserving bulge, and
-     Bend's contralateral quarter cycle. Edges shaded by their own
-     stretch ratio. */
-  var cv = document.getElementById("wave");
-  var ctx = cv.getContext("2d");
-
-  var NX = 40, NY = 5;
-  var LAMBDA = 0.32, SPEED = 0.26, AMP = 0.36, BEND = 1.0;
-
-  var pts = new Float32Array(NX * NY * 2);
-  var rest = new Float32Array(NX * NY * 2);
-
-  function build(t, w, h) {
-    var padX = 30, padY = 34;
-    var spanX = w - padX * 2, spanY = h - padY * 2;
-    for (var j = 0; j < NY; j++) {
-      for (var i = 0; i < NX; i++) {
-        var k = (j * NX + i) * 2;
-        var fx = i / (NX - 1);
-        var side = (j / (NY - 1)) * 2 - 1;
-        rest[k] = padX + fx * spanX;
-        rest[k + 1] = padY + (side * 0.5 + 0.5) * spanY;
-
-        var u = fx / LAMBDA - t * SPEED + BEND * 0.25 * side;
-        var a = AMP * 0.5 * (1 - Math.cos(2 * Math.PI * u));
-        // a displacement whose gradient is the contraction: material
-        // shortens at the crest and piles up either side of it
-        var dx = -(AMP * LAMBDA / (2 * Math.PI)) * Math.sin(2 * Math.PI * u) * spanX;
-        pts[k] = rest[k] + dx;
-        pts[k + 1] = padY + (side * 0.5 * (1 + a * 0.9) + 0.5) * spanY;
-      }
-    }
-  }
-
+  /* ---- shared drawing utilities ------------------------------- */
   function tok(name) {
     return getComputedStyle(document.body).getPropertyValue(name).trim();
   }
@@ -1846,16 +2109,70 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
 
   function lerp(a, b, t) {
     return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * t) + "," +
-                    Math.round(a[1] + (b[1] - a[1]) * t) + "," +
-                    Math.round(a[2] + (b[2] - a[2]) * t) + ")";
+      Math.round(a[1] + (b[1] - a[1]) * t) + "," +
+      Math.round(a[2] + (b[2] - a[2]) * t) + ")";
   }
 
-  function edge(k1, k2, cold, mid, hot) {
+  function sizeCanvas(canvas, context) {
+    var dpr = Math.min(devicePixelRatio || 1, 2);
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.clearRect(0, 0, w, h);
+    return { w: w, h: h };
+  }
+
+  function canvasLabel(context, text, x, y, align) {
+    context.fillStyle = tok("--ink-3");
+    context.font = "700 10px 'Schibsted Grotesk', sans-serif";
+    context.textAlign = align || "left";
+    context.fillText(text.toUpperCase(), x, y);
+  }
+
+  /* ---- Plate VIII: the travelling contraction ----------------- */
+  var cv = document.getElementById("wave");
+  var ctx = cv.getContext("2d");
+  var NX = 40, NY = 5;
+  var pts = new Float32Array(NX * NY * 2);
+  var rest = new Float32Array(NX * NY * 2);
+  var fiber = { activation: 0.3, wavelength: 1, bend: 1, phase: 0 };
+  var fiberRunning = !reduced;
+  var fiberVisible = false;
+  var fiberFrame = 0;
+  var fiberLast = performance.now();
+  var fiberPlay = document.getElementById("fiber-play");
+  var fiberStatus = document.getElementById("fiber-status");
+
+  function buildFiber(w, h) {
+    var padX = 30, padY = 38;
+    var spanX = w - padX * 2, spanY = h - padY * 2;
+    var lambda = Math.max(0.035, fiber.wavelength / 4);
+    for (var j = 0; j < NY; j++) {
+      for (var i = 0; i < NX; i++) {
+        var k = (j * NX + i) * 2;
+        var fx = i / (NX - 1);
+        var side = (j / (NY - 1)) * 2 - 1;
+        rest[k] = padX + fx * spanX;
+        rest[k + 1] = padY + (side * 0.5 + 0.5) * spanY;
+        var u = fx / lambda - fiber.phase + fiber.bend * 0.25 * side;
+        var a = fiber.activation * 0.5 * (1 - Math.cos(2 * Math.PI * u));
+        var dx = -(fiber.activation * lambda / (2 * Math.PI)) *
+          Math.sin(2 * Math.PI * u) * spanX;
+        pts[k] = rest[k] + dx;
+        pts[k + 1] = padY + (side * 0.5 * (1 + a * 0.9) + 0.5) * spanY;
+      }
+    }
+  }
+
+  function fiberEdge(k1, k2, cold, mid, hot) {
     var dx = pts[k1] - pts[k2], dy = pts[k1 + 1] - pts[k2 + 1];
     var rx = rest[k1] - rest[k2], ry = rest[k1 + 1] - rest[k2 + 1];
-    var s = Math.hypot(dx, dy) / (Math.hypot(rx, ry) || 1);
-    var t = Math.max(0, Math.min(1, (s - 0.7) / 0.6));
-    ctx.strokeStyle = t < 0.5 ? lerp(cold, mid, t * 2) : lerp(mid, hot, (t - 0.5) * 2);
+    var stretch = Math.hypot(dx, dy) / (Math.hypot(rx, ry) || 1);
+    var amount = Math.max(0, Math.min(1, (stretch - 0.7) / 0.6));
+    ctx.strokeStyle = amount < 0.5 ? lerp(cold, mid, amount * 2) : lerp(mid, hot, (amount - 0.5) * 2);
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(pts[k1], pts[k1 + 1]);
@@ -1863,43 +2180,347 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
     ctx.stroke();
   }
 
-  var t0 = performance.now();
-
-  function draw(now) {
-    var dpr = Math.min(devicePixelRatio || 1, 2);
-    var w = cv.clientWidth, h = cv.clientHeight;
-    if (cv.width !== w * dpr || cv.height !== h * dpr) {
-      cv.width = w * dpr;
-      cv.height = h * dpr;
-    }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    var cold = rgb(tok("--ochre-dim")),
-        mid = rgb(tok("--ink-3")),
-        hot = rgb(tok("--carmine"));
-
-    build(reduced ? 1.85 : (now - t0) / 1000, w, h);
-
+  function drawFiber() {
+    var box = sizeCanvas(cv, ctx);
+    var cold = rgb(tok("--ochre-dim"));
+    var mid = rgb(tok("--ink-3"));
+    var hot = rgb(tok("--carmine"));
+    buildFiber(box.w, box.h);
     for (var j = 0; j < NY; j++) {
       for (var i = 0; i < NX; i++) {
         var k = (j * NX + i) * 2;
-        if (i < NX - 1) edge(k, k + 2, cold, mid, hot);
-        if (j < NY - 1) edge(k, k + NX * 2, cold, mid, hot);
-        if (i < NX - 1 && j < NY - 1) edge(k, k + NX * 2 + 2, cold, mid, hot);
+        if (i < NX - 1) fiberEdge(k, k + 2, cold, mid, hot);
+        if (j < NY - 1) fiberEdge(k, k + NX * 2, cold, mid, hot);
+        if (i < NX - 1 && j < NY - 1) fiberEdge(k, k + NX * 2 + 2, cold, mid, hot);
       }
     }
-
     ctx.fillStyle = tok("--ink-3");
-    for (var n = 0; n < NX * NY; n++) {
-      ctx.fillRect(pts[n * 2] - 1, pts[n * 2 + 1] - 1, 2, 2);
-    }
-
-    if (!reduced) requestAnimationFrame(draw);
+    for (var n = 0; n < NX * NY; n++) ctx.fillRect(pts[n * 2] - 1, pts[n * 2 + 1] - 1, 2, 2);
+    canvasLabel(ctx, "fiber direction", 30, 20);
+    document.getElementById("fiber-phase").textContent = fiber.phase.toFixed(2) + " cycles";
   }
 
-  if (reduced) { draw(t0); addEventListener("resize", function () { draw(t0); }); }
-  else requestAnimationFrame(draw);
+  function queueFiber() {
+    if (!fiberFrame && fiberRunning && fiberVisible && !document.hidden) {
+      fiberLast = performance.now();
+      fiberFrame = requestAnimationFrame(stepFiber);
+    }
+  }
+
+  function stepFiber(now) {
+    fiberFrame = 0;
+    fiber.phase = (fiber.phase + Math.min(0.05, (now - fiberLast) / 1000)) % 1;
+    fiberLast = now;
+    drawFiber();
+    queueFiber();
+  }
+
+  function syncFiberStatus() {
+    fiberPlay.textContent = fiberRunning ? "Pause" : "Play";
+    fiberPlay.setAttribute("aria-pressed", fiberRunning ? "true" : "false");
+    fiberStatus.textContent = (fiberRunning ? "Travelling" : "Paused") +
+      ": Activation " + fiber.activation.toFixed(2) +
+      ", Wavelength " + fiber.wavelength.toFixed(2) + " m, Bend " + fiber.bend.toFixed(2) + ".";
+  }
+
+  [["fiber-activation", "activation", "fiber-activation-value", function (v) { return v.toFixed(2); }],
+   ["fiber-wavelength", "wavelength", "fiber-wavelength-value", function (v) { return v.toFixed(2) + " m"; }],
+   ["fiber-bend", "bend", "fiber-bend-value", function (v) { return v.toFixed(2); }]].forEach(function (binding) {
+    var input = document.getElementById(binding[0]);
+    input.addEventListener("input", function () {
+      fiber[binding[1]] = Number(input.value);
+      document.getElementById(binding[2]).textContent = binding[3](fiber[binding[1]]);
+      drawFiber();
+      syncFiberStatus();
+    });
+  });
+
+  fiberPlay.addEventListener("click", function () {
+    fiberRunning = !fiberRunning;
+    if (!fiberRunning && fiberFrame) cancelAnimationFrame(fiberFrame);
+    fiberFrame = 0;
+    syncFiberStatus();
+    queueFiber();
+  });
+  document.getElementById("fiber-reset").addEventListener("click", function () {
+    fiber.activation = 0.3; fiber.wavelength = 1; fiber.bend = 1; fiber.phase = 0;
+    document.getElementById("fiber-activation").value = "0.3";
+    document.getElementById("fiber-wavelength").value = "1";
+    document.getElementById("fiber-bend").value = "1";
+    document.getElementById("fiber-activation-value").textContent = "0.30";
+    document.getElementById("fiber-wavelength-value").textContent = "1.00 m";
+    document.getElementById("fiber-bend-value").textContent = "1.00";
+    drawFiber(); syncFiberStatus();
+  });
+  new IntersectionObserver(function (entries) {
+    fiberVisible = entries[0].isIntersecting;
+    if (!fiberVisible && fiberFrame) cancelAnimationFrame(fiberFrame);
+    fiberFrame = 0; queueFiber();
+  }, { rootMargin: "80px" }).observe(cv);
+  document.addEventListener("visibilitychange", queueFiber);
+  if (reduced) {
+    fiberPlay.textContent = "Play";
+    fiberPlay.setAttribute("aria-pressed", "false");
+    fiberStatus.textContent = "Paused for reduced motion. Use Play to start the travelling contraction.";
+  }
+  drawFiber();
+
+  /* ---- Lab II: dynamic and quasistatic ------------------------- */
+  var qsCanvas = document.getElementById("qs-demo");
+  var qsCtx = qsCanvas.getContext("2d");
+  var qsModel = { target: 0.65, dynamic: 0, velocity: 0, quasistatic: 0, iterations: 20, active: false };
+  var qsFrame = 0, qsLast = 0, qsVisible = false;
+
+  function drawSpecimen(context, x, y, width, height, compression, title, detail) {
+    canvasLabel(context, title, x + width / 2, y + 18, "center");
+    context.strokeStyle = tok("--rule");
+    context.lineWidth = 1;
+    context.strokeRect(x + 1, y + 31, width - 2, height - 32);
+    var top = y + 54;
+    var floor = y + height - 25;
+    var bodyH = Math.max(26, (floor - top - 18) * (1 - compression * 0.5));
+    var bodyW = Math.min(width * 0.55, 66 + compression * 30);
+    var bodyX = x + width / 2 - bodyW / 2;
+    var bodyY = floor - bodyH;
+    context.setLineDash([4, 4]);
+    context.strokeStyle = tok("--ochre-dim");
+    var eqY = floor - Math.max(26, (floor - top - 18) * (1 - qsModel.target * 0.5));
+    context.beginPath(); context.moveTo(x + 14, eqY); context.lineTo(x + width - 14, eqY); context.stroke();
+    context.setLineDash([]);
+    context.fillStyle = tok("--ochre-wash");
+    context.strokeStyle = compression > qsModel.target + 0.035 ? tok("--carmine") : tok("--ochre");
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.moveTo(bodyX + 10, bodyY);
+    context.bezierCurveTo(bodyX - compression * 16, bodyY + bodyH * 0.35, bodyX - compression * 16, bodyY + bodyH * 0.7, bodyX + 8, floor);
+    context.lineTo(bodyX + bodyW - 8, floor);
+    context.bezierCurveTo(bodyX + bodyW + compression * 16, bodyY + bodyH * 0.7, bodyX + bodyW + compression * 16, bodyY + bodyH * 0.35, bodyX + bodyW - 10, bodyY);
+    context.closePath(); context.fill(); context.stroke();
+    context.strokeStyle = tok("--ink-3");
+    context.beginPath(); context.moveTo(x + width / 2, top - 10); context.lineTo(x + width / 2, bodyY - 5); context.stroke();
+    context.beginPath(); context.moveTo(x + width / 2 - 4, bodyY - 11); context.lineTo(x + width / 2, bodyY - 5); context.lineTo(x + width / 2 + 4, bodyY - 11); context.stroke();
+    context.fillStyle = tok("--ink-3");
+    context.font = "11px 'Spline Sans Mono', monospace";
+    context.textAlign = "center";
+    context.fillText(detail, x + width / 2, y + height - 8);
+  }
+
+  function drawQs() {
+    var box = sizeCanvas(qsCanvas, qsCtx);
+    var narrowQs = box.w < 620;
+    if (narrowQs) {
+      var eachH = box.h / 2 - 6;
+      drawSpecimen(qsCtx, 10, 5, box.w - 20, eachH, qsModel.dynamic, "Dynamic", "state " + qsModel.dynamic.toFixed(3));
+      drawSpecimen(qsCtx, 10, eachH + 10, box.w - 20, eachH, qsModel.quasistatic, "Quasistatic", "state " + qsModel.quasistatic.toFixed(3));
+    } else {
+      var eachW = box.w / 2 - 15;
+      drawSpecimen(qsCtx, 10, 8, eachW, box.h - 16, qsModel.dynamic, "Dynamic · inertia retained", "state " + qsModel.dynamic.toFixed(3));
+      drawSpecimen(qsCtx, eachW + 20, 8, eachW, box.h - 16, qsModel.quasistatic, "Quasistatic · inertia discarded", "state " + qsModel.quasistatic.toFixed(3));
+    }
+  }
+
+  function queueQs() {
+    if (!qsFrame && qsModel.active && qsVisible && !document.hidden) {
+      qsLast = performance.now();
+      qsFrame = requestAnimationFrame(stepQs);
+    }
+  }
+
+  function stepQs(now) {
+    qsFrame = 0;
+    var dt = Math.min(0.032, (now - qsLast) / 1000 || 0.016);
+    qsLast = now;
+    qsModel.velocity += (18 * (qsModel.target - qsModel.dynamic) - 4.8 * qsModel.velocity) * dt;
+    qsModel.dynamic += qsModel.velocity * dt;
+    var qsRate = 2 + qsModel.iterations * 0.15;
+    qsModel.quasistatic += (qsModel.target - qsModel.quasistatic) * (1 - Math.exp(-qsRate * dt));
+    drawQs();
+    if (Math.abs(qsModel.target - qsModel.dynamic) < 0.0015 && Math.abs(qsModel.velocity) < 0.004 && Math.abs(qsModel.target - qsModel.quasistatic) < 0.0015) {
+      qsModel.dynamic = qsModel.target; qsModel.quasistatic = qsModel.target; qsModel.velocity = 0; qsModel.active = false;
+      document.getElementById("qs-state").textContent = "Settled";
+      document.getElementById("qs-status").textContent = "Both specimens converged at " + Math.round(qsModel.target * 100) + "% load; only the dynamic route overshot equilibrium.";
+      drawQs(); return;
+    }
+    queueQs();
+  }
+
+  document.getElementById("qs-load").addEventListener("input", function (event) {
+    qsModel.target = Number(event.target.value) / 100;
+    document.getElementById("qs-load-value").textContent = event.target.value + "%";
+    drawQs();
+  });
+  document.getElementById("qs-iterations").addEventListener("input", function (event) {
+    qsModel.iterations = Number(event.target.value);
+    document.getElementById("qs-iterations-value").textContent = event.target.value;
+  });
+  document.getElementById("qs-apply").addEventListener("click", function () {
+    if (qsFrame) cancelAnimationFrame(qsFrame);
+    qsFrame = 0;
+    qsModel.dynamic = 0;
+    qsModel.velocity = 0;
+    qsModel.quasistatic = 0;
+    if (reduced) {
+      qsModel.dynamic = qsModel.target * 1.12;
+      qsModel.quasistatic = qsModel.target * (1 - Math.exp(-qsModel.iterations / 5));
+      qsModel.active = false;
+      document.getElementById("qs-state").textContent = "Static plate";
+      document.getElementById("qs-status").textContent = "Reduced-motion plate: dynamic is shown after overshoot; quasistatic is shown after " + qsModel.iterations + " monotonic sweeps.";
+      drawQs();
+      return;
+    }
+    qsModel.active = true;
+    document.getElementById("qs-state").textContent = "Solving";
+    document.getElementById("qs-status").textContent = "The same " + Math.round(qsModel.target * 100) + "% load is applied: dynamic carries velocity; quasistatic resolves with " + qsModel.iterations + " sweeps.";
+    queueQs();
+  });
+  document.getElementById("qs-reset").addEventListener("click", function () {
+    if (qsFrame) cancelAnimationFrame(qsFrame);
+    qsFrame = 0; qsModel.dynamic = 0; qsModel.velocity = 0; qsModel.quasistatic = 0; qsModel.active = false;
+    document.getElementById("qs-state").textContent = "Ready";
+    document.getElementById("qs-status").textContent = "Both specimens are at rest. Set the shared load, then apply it.";
+    drawQs();
+  });
+  new IntersectionObserver(function (entries) {
+    qsVisible = entries[0].isIntersecting;
+    if (!qsVisible && qsFrame) cancelAnimationFrame(qsFrame);
+    qsFrame = 0;
+    queueQs();
+  }, { rootMargin: "80px" }).observe(qsCanvas);
+  document.addEventListener("visibilitychange", queueQs);
+  drawQs();
+
+  /* ---- Lab I: primitive signed-distance fields ----------------- */
+  var colCanvas = document.getElementById("collider-demo");
+  var colCtx = colCanvas.getContext("2d");
+  var colState = { shape: "sphere", scale: 1, x: 0.77, y: 0.33 };
+  var colDrag = false;
+
+  function fieldAt(x, y, shape) {
+    var px, py, len, normal, closest, hx = 0.88, hy = 0.58;
+    if (shape === "sphere") {
+      len = Math.hypot(x, y);
+      normal = len < 0.000001 ? { x: 1, y: 0 } : { x: x / len, y: y / len };
+      closest = { x: normal.x * 0.7, y: normal.y * 0.7 };
+      return { distance: len - 0.7, normal: normal, closest: closest };
+    }
+    if (shape === "capsule") {
+      py = Math.max(-0.48, Math.min(0.48, y));
+      px = x; var dy = y - py;
+      len = Math.hypot(px, dy);
+      normal = len < 0.000001 ? { x: 1, y: 0 } : { x: px / len, y: dy / len };
+      closest = { x: normal.x * 0.4, y: py + normal.y * 0.4 };
+      return { distance: len - 0.4, normal: normal, closest: closest };
+    }
+    var qx = Math.abs(x) - hx, qy = Math.abs(y) - hy;
+    var outside = Math.hypot(Math.max(qx, 0), Math.max(qy, 0));
+    var distance = outside + Math.min(Math.max(qx, qy), 0);
+    closest = { x: Math.max(-hx, Math.min(hx, x)), y: Math.max(-hy, Math.min(hy, y)) };
+    if (outside > 0) {
+      normal = { x: x - closest.x, y: y - closest.y };
+      len = Math.hypot(normal.x, normal.y) || 1; normal.x /= len; normal.y /= len;
+    } else if (hx - Math.abs(x) < hy - Math.abs(y)) {
+      normal = { x: x < 0 ? -1 : 1, y: 0 }; closest.x = normal.x * hx; closest.y = y;
+    } else {
+      normal = { x: 0, y: y < 0 ? -1 : 1 }; closest.x = x; closest.y = normal.y * hy;
+    }
+    return { distance: distance, normal: normal, closest: closest };
+  }
+
+  function colliderGeometry(w, h) {
+    return { cx: w * 0.48, cy: h * 0.51, unit: Math.min(w, h) * 0.29, angle: -0.22 };
+  }
+
+  function worldToLocal(x, y, geo) {
+    var dx = x - geo.cx, dy = y - geo.cy, c = Math.cos(-geo.angle), s = Math.sin(-geo.angle);
+    return { x: (dx * c - dy * s) / (geo.unit * colState.scale), y: (dx * s + dy * c) / (geo.unit * colState.scale) };
+  }
+
+  function localToWorld(point, geo) {
+    var x = point.x * geo.unit * colState.scale, y = point.y * geo.unit * colState.scale;
+    var c = Math.cos(geo.angle), s = Math.sin(geo.angle);
+    return { x: geo.cx + x * c - y * s, y: geo.cy + x * s + y * c };
+  }
+
+  function drawCollider() {
+    var box = sizeCanvas(colCanvas, colCtx), geo = colliderGeometry(box.w, box.h);
+    for (var gy = 18; gy < box.h; gy += 18) {
+      for (var gx = 18; gx < box.w; gx += 18) {
+        var sample = worldToLocal(gx, gy, geo);
+        var distance = fieldAt(sample.x, sample.y, colState.shape).distance;
+        colCtx.fillStyle = distance < 0 ? tok("--ochre-dim") : tok("--rule");
+        colCtx.globalAlpha = distance < 0 ? 0.55 : 0.65;
+        colCtx.fillRect(gx, gy, 1.5, 1.5);
+      }
+    }
+    colCtx.globalAlpha = 1;
+    colCtx.save();
+    colCtx.translate(geo.cx, geo.cy); colCtx.rotate(geo.angle); colCtx.scale(geo.unit * colState.scale, geo.unit * colState.scale);
+    colCtx.fillStyle = tok("--ochre-wash"); colCtx.strokeStyle = tok("--ochre"); colCtx.lineWidth = 1.4 / (geo.unit * colState.scale);
+    colCtx.beginPath();
+    if (colState.shape === "sphere") colCtx.arc(0, 0, 0.7, 0, Math.PI * 2);
+    else if (colState.shape === "box") colCtx.rect(-0.88, -0.58, 1.76, 1.16);
+    else {
+      colCtx.moveTo(-0.4, -0.48); colCtx.arc(0, -0.48, 0.4, Math.PI, 0);
+      colCtx.lineTo(0.4, 0.48); colCtx.arc(0, 0.48, 0.4, 0, Math.PI); colCtx.closePath();
+    }
+    colCtx.fill(); colCtx.stroke(); colCtx.restore();
+    var node = { x: colState.x * box.w, y: colState.y * box.h };
+    var local = worldToLocal(node.x, node.y, geo);
+    var hit = fieldAt(local.x, local.y, colState.shape);
+    var surface = localToWorld(hit.closest, geo);
+    var normalEnd = localToWorld({ x: hit.closest.x + hit.normal.x * 0.36, y: hit.closest.y + hit.normal.y * 0.36 }, geo);
+    colCtx.setLineDash([4, 4]); colCtx.strokeStyle = tok("--ink-3");
+    colCtx.beginPath(); colCtx.moveTo(node.x, node.y); colCtx.lineTo(surface.x, surface.y); colCtx.stroke(); colCtx.setLineDash([]);
+    colCtx.strokeStyle = tok("--carmine"); colCtx.beginPath(); colCtx.moveTo(surface.x, surface.y); colCtx.lineTo(normalEnd.x, normalEnd.y); colCtx.stroke();
+    colCtx.beginPath(); colCtx.moveTo(normalEnd.x, normalEnd.y); colCtx.lineTo(normalEnd.x - hit.normal.x * 8 - hit.normal.y * 4, normalEnd.y - hit.normal.y * 8 + hit.normal.x * 4); colCtx.moveTo(normalEnd.x, normalEnd.y); colCtx.lineTo(normalEnd.x - hit.normal.x * 8 + hit.normal.y * 4, normalEnd.y - hit.normal.y * 8 - hit.normal.x * 4); colCtx.stroke();
+    colCtx.fillStyle = tok("--plate"); colCtx.strokeStyle = tok("--carmine"); colCtx.lineWidth = 2;
+    colCtx.beginPath(); colCtx.arc(surface.x, surface.y, 5, 0, Math.PI * 2); colCtx.fill(); colCtx.stroke();
+    colCtx.fillStyle = hit.distance < 0 ? tok("--carmine") : tok("--ochre"); colCtx.strokeStyle = tok("--plate"); colCtx.lineWidth = 3;
+    colCtx.beginPath(); colCtx.arc(node.x, node.y, 7, 0, Math.PI * 2); colCtx.fill(); colCtx.stroke();
+    canvasLabel(colCtx, "world space", 18, 22);
+    canvasLabel(colCtx, "local field · rotated −12.6°", box.w - 18, 22, "right");
+    colCtx.fillStyle = tok("--ink-3"); colCtx.font = "11px 'Spline Sans Mono', monospace"; colCtx.textAlign = "left";
+    colCtx.fillText("node  [" + local.x.toFixed(2) + ", " + local.y.toFixed(2) + "] local", 18, box.h - 32);
+    colCtx.fillText("SDF   " + (hit.distance >= 0 ? "+" : "") + hit.distance.toFixed(3), 18, box.h - 15);
+    var label = colState.shape.charAt(0).toUpperCase() + colState.shape.slice(1);
+    document.getElementById("collider-status").textContent = "Node is " + (hit.distance < 0 ? "inside " : "outside ") + label + ". Signed distance " + (hit.distance >= 0 ? "+" : "") + hit.distance.toFixed(3) + "; surface normal [" + hit.normal.x.toFixed(2) + ", " + hit.normal.y.toFixed(2) + "]" + (hit.distance < 0 ? "; corrected contact is marked on the surface." : "; nearest surface point is marked.");
+  }
+
+  function moveColliderNode(clientX, clientY) {
+    var rect = colCanvas.getBoundingClientRect();
+    colState.x = Math.max(0.04, Math.min(0.96, (clientX - rect.left) / rect.width));
+    colState.y = Math.max(0.07, Math.min(0.93, (clientY - rect.top) / rect.height));
+    drawCollider();
+  }
+  colCanvas.addEventListener("pointerdown", function (event) {
+    colDrag = true; colCanvas.setPointerCapture(event.pointerId); moveColliderNode(event.clientX, event.clientY);
+  });
+  colCanvas.addEventListener("pointermove", function (event) { if (colDrag) moveColliderNode(event.clientX, event.clientY); });
+  colCanvas.addEventListener("pointerup", function () { colDrag = false; });
+  colCanvas.addEventListener("keydown", function (event) {
+    var rect = colCanvas.getBoundingClientRect(), step = 12;
+    var x = colState.x * rect.width, y = colState.y * rect.height;
+    if (event.key === "ArrowLeft") x -= step;
+    else if (event.key === "ArrowRight") x += step;
+    else if (event.key === "ArrowUp") y -= step;
+    else if (event.key === "ArrowDown") y += step;
+    else return;
+    event.preventDefault();
+    colState.x = Math.max(0.04, Math.min(0.96, x / rect.width));
+    colState.y = Math.max(0.07, Math.min(0.93, y / rect.height));
+    drawCollider();
+  });
+  document.getElementById("collider-shapes").addEventListener("change", function (event) {
+    if (event.target.name === "collider-shape") { colState.shape = event.target.value; drawCollider(); }
+  });
+  document.getElementById("collider-scale").addEventListener("input", function (event) {
+    colState.scale = Number(event.target.value);
+    document.getElementById("collider-scale-value").textContent = colState.scale.toFixed(2);
+    drawCollider();
+  });
+
+  addEventListener("resize", function () { drawFiber(); drawQs(); drawCollider(); });
+  drawCollider();
 })();
 </script>
 </body>
