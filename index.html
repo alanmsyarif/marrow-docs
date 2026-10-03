@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documentation for Marrow 2.15.0, a GPU tetrahedral soft body system for Blender 5.2 built on neo-Hookean XPBD and GLSL compute shaders.">
+<meta name="description" content="Documentation for Marrow 2.20.4, a GPU tetrahedral soft body system for Blender 5.2 built on neo-Hookean XPBD and GLSL compute shaders.">
 <meta name="theme-color" content="#0C110F">
 <link rel="icon" href="/marrow-icon.svg" type="image/svg+xml">
-<title>Marrow 2.15.0 Handbook</title>
+<title>Marrow 2.20.4 Handbook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Schibsted+Grotesk:wght@500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -818,7 +818,7 @@ footer {
   <aside class="key" id="key">
     <a class="colophon" href="#top">
       <b>Marrow</b>
-      <span>2.15.0 · Blender 5.2</span>
+      <span>2.20.4 · Blender 5.2</span>
     </a>
 
     <div class="sift">
@@ -836,8 +836,10 @@ footer {
         <a href="#what">What Marrow is</a>
         <a href="#install">Install</a>
         <a href="#quickstart">Quick start</a>
+        <a href="#recipes">Material recipes</a>
         <a href="#drag">Grabbing the body</a>
         <a href="#undo">Getting your object back</a>
+        <a href="#demos">Example scenes</a>
       </div>
       <div class="limb">
         <h4>The cage</h4>
@@ -1017,7 +1019,10 @@ footer {
             <tr><td>Material fails under a press you wanted intact</td><td>A volume-preserving squash stretches sideways, and lateral stretch counts</td><td><a href="#failure">Failure</a></td></tr>
             <tr><td>A bake is gone after reopening the file</td><td>The mesh was edited or re-tetrahedralized, so the cache no longer fits and was refused</td><td><a href="#diskcache">Baked caches</a></td></tr>
             <tr><td>The body passes through itself where it folds</td><td>Self Collision is off, or Thickness is below about 1.0 and folds slip between nodes</td><td><a href="#selfcollision">Self collision</a></td></tr>
-            <tr><td>The body sinks into a collider that deforms</td><td>A deforming collider is captured once at the start and never re-baked</td><td><a href="#colliders">Colliders</a></td></tr>
+            <tr><td>The body sinks into a collider that deforms</td><td>Its Shape is Mesh, which is captured once at the start and never re-baked. Set it to Animated Mesh</td><td><a href="#animatedmesh">Animated Mesh</a></td></tr>
+            <tr><td>An Animated Mesh collider stops the simulation</td><td>Its vertex or triangle connectivity changed, or its scale was animated through zero</td><td><a href="#animatedmesh">Animated Mesh</a></td></tr>
+            <tr><td>Stick Break lets go on first touch, or never</td><td>Older versions read it every substep, where the impact transient swamps the pull. It is now read once a frame</td><td><a href="#sticky">Sticky colliders</a></td></tr>
+            <tr><td>Self Collision acts as if it were off</td><td>Thickness is below 0.71, so a surface point can sit between nodes and be missed by every pair</td><td><a href="#selfcollision">Self collision</a></td></tr>
             <tr><td>Blender freezes for a minute when Live goes on</td><td>A mesh collider is baking its distance field; it is kept beside the .blend afterwards</td><td><a href="#colliders">Colliders</a></td></tr>
             <tr><td>A sticky collider will not hold anything</td><td>Something depenetrated the node first, so check whether the ground plane sits at or above the sticky surface</td><td><a href="#sticky">Sticky colliders</a></td></tr>
             <tr><td>Every GPU test in the suite fails</td><td>The suite was pointed at Blender 4.5, which has no GPU context in background mode</td><td><a href="#development">Development</a></td></tr>
@@ -1034,7 +1039,7 @@ footer {
 
     <section id="install">
       <h2>Install</h2>
-      <pre><code>blender --command extension install-file -r user_default --enable dist/marrow-2.15.0.zip</code></pre>
+      <pre><code>blender --command extension install-file -r user_default --enable dist/marrow-2.20.4.zip</code></pre>
       <p>Or in Blender: <strong>Edit &gt; Preferences &gt; Get Extensions &gt; Install from Disk</strong>.</p>
       <h4>Building from source</h4>
       <pre><code>blender --command extension build --source-dir marrow --output-dir dist</code></pre>
@@ -1049,12 +1054,37 @@ footer {
         <li>Press play.</li>
       </ol>
       <p>That is the whole loop. <strong>Live is on by default</strong>: each frame is simulated as the timeline reaches it and cached, so scrubbing back is free and a second pass costs nothing.</p>
+      <p><strong>Tetrahedralize takes the whole selection.</strong> Select several meshes and it cages every one of them, in name order, under a single progress bar: a rig of twenty muscles is one press rather than twenty. Each object keeps its own Resolution, Shell and fiber settings; the batch only decides which objects get built, never how. Selected cages are skipped, so re-running over a selection that includes them is safe. There is still one solver per body: what makes several bodies act as one system is <a href="#twobodies">colliding two bodies</a> and <a href="#glue">Glue</a>, not the way they were tetrahedralized.</p>
+      <p>A batch is partial-then-report: an object that cannot be filled is named in the report and the rest still get their cages, rather than one bad mesh costing the whole selection. Only when nothing at all succeeded does it come back as an error. <strong>Esc</strong> cancels the batch at whatever object it had reached, keeping the cages already built.</p>
       <p>To change how it behaves, edit a setting and <strong>return to the start frame</strong>. That restarts the simulation without freeing the cache or rebaking it. Stiffness, Volume Preservation and the fiber settings are kernel uniforms, so they land on the next frame without a restart and can be driven from a rig. Measured on an RTX 5050, a live frame costs 1 to 2 ms from a 125-node cage up to a 2,744-node one, so the edit loop stays interactive.</p>
+    </section>
+
+    <section id="recipes">
+      <h2>Material recipes</h2>
+      <p><strong>Recipe</strong> sits just below Cage, and is available before the first Tetrahedralize. Choose one and press <strong>Apply</strong> to set Stiffness, Volume Preservation, Damping and Substeps together. These are starting points, not locked modes: edit any slider afterwards. They do not change Resolution, contacts, gravity or the cage.</p>
+      <div class="tw free">
+        <table>
+          <thead><tr><th>Recipe</th><th class="n">Stiffness</th><th class="n">Volume</th><th class="n">Damping</th><th class="n">Substeps</th><th>Starting point</th></tr></thead>
+          <tbody>
+            <tr><td>Balanced</td><td class="n">10,000</td><td class="n">100,000</td><td class="n">0.999</td><td class="n">10</td><td>Original defaults</td></tr>
+            <tr><td>Gel</td><td class="n">2,000</td><td class="n">40,000</td><td class="n">0.997</td><td class="n">12</td><td>Soft gel</td></tr>
+            <tr><td>Rubber</td><td class="n">8,000</td><td class="n">140,000</td><td class="n">0.9995</td><td class="n">12</td><td>Elastic, lightly damped</td></tr>
+            <tr><td>Foam</td><td class="n">50,000</td><td class="n">500,000</td><td class="n">0.995</td><td class="n">16</td><td>Firm, faster decay</td></tr>
+            <tr><td>Wobble</td><td class="n">1,500</td><td class="n">25,000</td><td class="n">0.9995</td><td class="n">16</td><td>Soft, lightly damped</td></tr>
+            <tr><td>Soft Tissue</td><td class="n">4,000</td><td class="n">90,000</td><td class="n">0.998</td><td class="n">14</td><td>Medium-soft, volume-supporting</td></tr>
+            <tr><td>Sponge</td><td class="n">1,500</td><td class="n">15,000</td><td class="n">0.975</td><td class="n">18</td><td>Soft, strongly damped</td></tr>
+            <tr><td>Silicone</td><td class="n">30,000</td><td class="n">300,000</td><td class="n">0.9995</td><td class="n">18</td><td>Firm, lightly damped</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Return to the start frame to restart Live with the new values; for an existing bake, <strong>Free This Body</strong> and bake again. Damping means <em>velocity retained</em> per substep, so nearer 1 is less damped. The toolbar says <strong>Bake All Bodies</strong> because it bakes every Marrow body in the scene, while Free This Body only frees the active body's cache.</p>
     </section>
 
     <section id="drag">
       <h2>Grabbing the body</h2>
       <p>While a live simulation is running, press <strong>Drag</strong> in the Marrow panel, then click and hold on the body in the 3D viewport. The cage node nearest the cursor is pulled towards the mouse with a firm, springy grip while the simulation continues stepping. Release it and the body keeps the pose and momentum left by the fling.</p>
+      <p><strong>Any live body in the scene, not just the selected one.</strong> One press of Drag arms the whole scene: each click grabs whichever live body is under the cursor, so you can throw one, catch another and pile them up without going back to the outliner. Where two bodies overlap on screen the front one wins. The rest of the scene keeps simulating while you hold a body: a drag freezes the timeline, so every live body is stepped by the drag's own tick, and bodies that collide or are glued still advance together as one group.</p>
+      <p>The button stays lit while a drag session is running, the way Live does, so it is clear that Drag is armed and that <strong>Esc</strong> ends it.</p>
       <p>The drag plane faces the view through the pick point. A <a href="#pinning">pin</a>, <a href="#colliders">collider</a> or the <a href="#ground">ground plane</a> still wins on the grabbed node, so pulling a body into a wall squashes it instead of clipping through. Drag needs a live simulation; the control is disabled without one.</p>
       <div class="aside">
         <span class="lab">Viewport navigation</span>
@@ -1071,6 +1101,26 @@ footer {
         <p><strong>Free Bake is not De-tetrahedralize.</strong> Free Bake discards the cache and the GPU memory and leaves the object tetrahedralised and deformed, ready to simulate again.</p>
       </div>
       <p>Editing the mesh's topology between the two invalidates the stored shape, since the attribute is per-point. Re-tetrahedralize after any Edit Mode change.</p>
+    </section>
+
+    <section id="demos">
+      <h2>Example scenes</h2>
+      <p class="lede">Seven ready-made .blend files ship in <code>demos/</code>. Each opens at frame 1 with a camera, lighting, materials, a selected Marrow body and Live on.</p>
+      <div class="tw free">
+        <table>
+          <thead><tr><th>File</th><th>What it shows</th></tr></thead>
+          <tbody>
+            <tr><td><code>animated_hand_squeeze.blend</code></td><td>A low-poly hand proxy rigged to an Armature curls four fingers and a thumb around a soft cube, squeezes it to about 87% of its width and releases. 120 frames at 24&nbsp;fps, friction 0.5. See <a href="#animatedmesh">Animated Mesh</a>.</td></tr>
+            <tr><td><code>soft_body_drop_contact.blend</code></td><td>A deformable impactor strikes a pinned, volumetric cushion beside an identical no-impact control. Both bodies deform through two-way body contact. The display pedestals are not colliders.</td></tr>
+            <tr><td><code>pinned_hanging_beam.blend</code></td><td>An open curve bakes longitudinal fibers into a pinned beam; keyed wave phase contracts it beside a weightless, fiber-free control.</td></tr>
+            <tr><td><code>fiber_showcase.blend</code></td><td>Five lanes compare longitudinal, radial, helical, a travelling bend wave and a passive control. Play from frame 1 and inspect frame 28.</td></tr>
+            <tr><td><code>force_fields_showcase.blend</code></td><td>Force, Wind, Vortex and Turbulence panels beside an unpowered control, with ghost outlines of the start positions. Gravity and contact are off; play through frame 80.</td></tr>
+            <tr><td><code>multipin_creature.blend</code></td><td>Four Hook controllers drive four painted pin regions on one connected soft creature. The floor is illustrative, <strong>not a collider</strong>: a choreographed gait, not simulated traction. Play through frame 108.</td></tr>
+            <tr><td><code>octopus_multipin_showcase.blend</code></td><td>Eight pinned tentacle tips follow independent Hook targets while the body deforms under gravity and Marrow's actual ground collision. Tip placement is choreographed, not autonomous walking. Play through frame 128.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Press Play from frame 1. The physics has frame history, so jumping straight to a later frame is not equivalent. Each file carries its instructions in a <code>README</code> Text datablock. These are live examples, not baked caches. The <code>tools/make_demo_*.py</code> and <code>tools/verify_demo_*.py</code> scripts regenerate each scene and check its motion against its control.</p>
     </section>
 
     <section id="coverage">
@@ -1193,7 +1243,7 @@ footer {
           <thead><tr><th>Mode</th><th>Behaviour</th></tr></thead>
           <tbody>
             <tr><td><strong>Live</strong> (default)</td><td>Simulates as you play, caching as it goes. Returning to the start frame restarts and re-reads the sliders. Scrubbing <em>below</em> the start frame resets the body to rest.</td></tr>
-            <tr><td><strong>Bake</strong></td><td>Simulates the whole scene range up front. The result is then fixed: replaying it, including from the start frame or below it, never re-simulates, so it survives slider changes until you free it.</td></tr>
+            <tr><td><strong>Bake</strong></td><td>Simulates every Marrow body in the scene over the whole scene range up front, whichever object is active. The result is then fixed: replaying it, including from the start frame or below it, never re-simulates, so it survives slider changes until you free it.</td></tr>
             <tr><td><strong>Free</strong></td><td>Discards the cache and releases GPU memory.</td></tr>
           </tbody>
         </table>
@@ -1214,7 +1264,7 @@ footer {
 
     <section id="settings">
       <h2>Every setting</h2>
-      <p class="lede">The full panel, in panel order.</p>
+      <p class="lede">The full panel, in panel order. <a href="#recipes">Material recipes</a> set the first few together.</p>
       <div class="tw free">
         <table class="setting">
           <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
@@ -1255,9 +1305,9 @@ footer {
             <tr><td>Attach Group</td><td>Vertex group saying where the flesh is bound. Weight 1 keeps Attach Stiffness as set, weight 0 drops it to Loosest. See <a href="#attachment">Attachment</a>.</td></tr>
             <tr><td>Loosest</td><td>Share of Attach Stiffness where that group's weight is 0. 0 is material the armature never reaches.</td></tr>
             <tr><td>Glue To</td><td>Another Marrow body this one rides, instead of its own modifiers. Uses Attach Stiffness and Attach Group. See <a href="#glue">Glue</a>.</td></tr>
-            <tr><td>Pin Group</td><td>Vertex group whose weight holds material in place. 1.0 pins solid; below that is a heavier node, not a partial hold. See <a href="#pinning">Pinning</a>.</td></tr>
-            <tr><td>Follows Animation</td><td>Let the pinned region ride the animation instead of staying put. Still rigid. Needs Attachment.</td></tr>
-            <tr><td>Colliders</td><td>The collection of objects this body collides against. Shape, Sticky and Friction are set on each object.</td></tr>
+            <tr><td>Pin Group / Additional Groups</td><td>Vertex groups whose combined weights hold material in place. 1.0 pins solid; below that is a heavier node, not a partial hold. See <a href="#pinning">Pinning</a>.</td></tr>
+            <tr><td>Follows Animation</td><td>Let all pinned regions ride the animation instead of staying put. Still rigid. Needs Attachment.</td></tr>
+            <tr><td>Colliders</td><td>The collection of objects this body collides against. Shape (Mesh, Animated Mesh, Sphere, Box, Capsule), Sticky and Friction are set on each object.</td></tr>
             <tr><td>Stick Break</td><td>How far material may drag a sticky contact before it lets go. 0 never lets go.</td></tr>
             <tr><td>False Color</td><td>Off / Stretch rainbow display of how far the material is stretched. See <a href="#falsecolor">False color</a>.</td></tr>
           </tbody>
@@ -1311,8 +1361,17 @@ footer {
       <p>What made it slow was the sign, not the distance: <code>find_nearest</code> costs 0.4&nbsp;&micro;s a cell and the ray-parity inside test beside it costs 92.8&nbsp;&micro;s. Parity still decides the sign, but only in a band one cell wide around the surface, which is the only place its accuracy is load-bearing. Everywhere else the answer is whether the cell connects to the outside of the padded box, which no ray can graze.</p>
       <p>That is also <em>more</em> accurate than asking parity everywhere. On that terrain it removed 21 of 6,000 sampled cells that parity had called inside while sitting up to 21 cells from any surface, each one with its three rays split two to one.</p>
       <div class="hazard">
-        <span class="lab"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 2 15 14H1Z"/><path d="M8 6.5v3.2"/><path d="M8 11.8v.2"/></svg>Baked once</span>
-        <p><strong>A deforming collider is not re-baked.</strong> Shape keys, an armature or Geometry Nodes on the collider are captured once when the simulation starts and never revisited. Transform animation is free; deformation is not.</p>
+        <span class="lab"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 2 15 14H1Z"/><path d="M8 6.5v3.2"/><path d="M8 11.8v.2"/></svg>Mesh is baked once</span>
+        <p><strong>A Mesh collider is not re-baked.</strong> Shape keys, an armature or Geometry Nodes on it are captured once when the simulation starts and never revisited. Transform animation is free; deformation is not. For a deforming contact surface, use <a href="#animatedmesh">Animated Mesh</a>.</p>
+      </div>
+
+      <h3 id="animatedmesh">Animated Mesh</h3>
+      <p><strong>Animated Mesh</strong> is the Shape for an animated hand or any other deforming contact surface. It reads the evaluated mesh once per simulated frame, interpolates its motion across the frame's substeps, and checks fast surface crossings between samples. It pushes only the Marrow body: the collider stays kinematic and is never changed by physics.</p>
+      <p>It is meant for a closed, outward-facing <strong>low-poly collision proxy</strong>, not the render mesh. Its vertex and triangle connectivity must stay unchanged: Armatures, Shape Keys and topology-preserving modifiers work, while a topology change stops the simulation and names the collider. A negative object scale is supported, but do not animate through zero into or out of a reflection; the winding change is rejected as a topology change.</p>
+      <p><strong>Sticky is unavailable</strong> in this mode, because a rigid local-space anchor cannot follow skinned triangles. Friction does follow the proxy's surface motion. Bodies sharing one proxy share its evaluated mesh sample each frame, while keeping separate collision history and GPU resources.</p>
+      <div class="aside">
+        <span class="lab"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 14.5 8 8 14.5 1.5 8Z"/></svg>Parent the proxy</span>
+        <p>In <code>demos/animated_hand_squeeze.blend</code> the hand proxy is <strong>parented</strong> to the armature object. The Armature modifier deforms in mesh space, so translating the armature alone would not move the evaluated proxy.</p>
       </div>
 
       <h3>Collections, not lists</h3>
@@ -1328,7 +1387,7 @@ footer {
       <p>Contact resists sliding, not just interpenetration. <strong>Friction</strong> is one coefficient per contact surface: <code>0</code> slides freely, around <code>0.5</code> grips on a gentle slope, <code>1</code> and above holds almost anywhere it can get a grip.</p>
       <p>There are two places to set it, and which one applies depends on what the material is touching. Each collider in the list carries its <strong>own</strong> Friction, set on the collider object beside its Shape and Sticky, so a slippery floor and a grippy hand can be in the same scene. Everything with no collider slot of its own (the ground plane, the body against itself, and contact with other Marrow bodies) reads the body's <strong>Friction</strong> slider instead.</p>
       <p>One coefficient covers both static and sliding friction. Below the limit the entire sideways step is given back and the material simply holds; above it the contact slips, at a rate the coefficient sets. The limit scales with how hard the contact is pressed, which is what makes it read as weight: the same slider grips harder under a heavy landing than a light touch.</p>
-      <p>Friction is applied as a position correction inside the contact pass, from the correction that pass already computed, so it needs no separate normal, and no second pass. Both the ground plane and the collider primitives measure it against a collider held still for the substep. Self-collision and body-to-body measure the <em>pair</em>, so two parts of one body travelling together are not braked for merely touching.</p>
+      <p>Friction is applied as a position correction inside the contact pass, from the correction that pass already computed, so it needs no separate normal, and no second pass. The ground plane and rigid collider shapes measure it against a collider held still for the substep. Animated Mesh measures relative motion against the moving triangle surface. Self-collision and body-to-body measure the <em>pair</em>, so two parts of one body travelling together are not braked for merely touching.</p>
       <p><code>0</code> is the default everywhere and is bit-identical to having no friction at all, so nothing that was authored before this existed moves differently.</p>
       <div class="aside">
         <span class="lab"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 14.5 8 8 14.5 1.5 8Z"/></svg>Different mechanisms</span>
@@ -1341,6 +1400,8 @@ footer {
       <p>The magnet toggle on a collider makes it <strong>sticky</strong>. Material that touches it is held to the surface and dragged along as the collider moves, instead of only being pushed out of it.</p>
       <p>Plain non-penetration can only push, so a collider that lifts away leaves the body behind. Sticky is what makes squash-and-stretch possible: press a plate into a blob, lift it, and the material is drawn up into a column. The contact point is recorded in the collider's own local space, so the anchor rides the animated transform for free and rotation and scale come along with it.</p>
       <p><strong>Stick Break</strong> is how far the material may drag a contact point before it lets go, in world units. Zero never lets go. There is no universal value: the distance a contact settles at depends on Stiffness and Substeps, so tune it against the shot.</p>
+      <p><strong>It is read once a frame, on the last substep.</strong> Every substep was the old behaviour, and it made the slider useless: mid-frame the gap between a node and its anchor is dominated by the impact transient of the contact itself, not by how hard anything is pulling. Measured on a 1&nbsp;m block at 10 substeps, the frame a plate first touches peaks at 0.325 while a body hauled 4&nbsp;m off a <em>stationary</em> plate with <a href="#drag">Drag</a> never reads more than 0.156, so every setting either let go on first touch or never let go at all. Read after the frame's solve has settled, the same block gives 0.047 on the contact frame, 0.024 hanging idle, 0.052 dragged 1&nbsp;m and 0.156 dragged 4&nbsp;m, which is a range a slider can address.</p>
+      <p>Sticky is not available on an <a href="#animatedmesh">Animated Mesh</a> collider.</p>
 
       <h3>Nothing may depenetrate first</h3>
       <p>A sticky collider can only grab a node that is still inside it. Until 2.5.1 the ground plane was resolved before every collider, so a sticky collider sitting at or below the ground plane <strong>never held anything at all</strong>, whatever Stick Break was set to. Measured, a body on a sticky floor at z&nbsp;=&nbsp;0 with the ground plane also at z&nbsp;=&nbsp;0 followed that floor 0.000 of 0.600. The ground plane runs last now and defers to a node a collider is already holding, so the anchor still outranks the floor.</p>
@@ -1367,19 +1428,24 @@ footer {
         </div>
         <div class="tw">
           <table>
-            <thead><tr><th>Resolution</th><th class="n">Cage nodes</th><th class="n">Surface nodes</th><th class="n">Off</th><th class="n">On</th></tr></thead>
+            <thead><tr><th>Resolution</th><th class="n">Cage nodes</th><th class="n">Surface nodes</th><th class="n">Off</th><th class="n">On, before 2.14</th><th class="n">On</th></tr></thead>
             <tbody>
-              <tr><td>0.25</td><td class="n">461</td><td class="n">314</td><td class="n">1.9 ms</td><td class="n">3.0 ms</td></tr>
-              <tr><td>0.15</td><td class="n">1,707</td><td class="n">848</td><td class="n">2.0 ms</td><td class="n">4.9 ms</td></tr>
-              <tr><td>0.10</td><td class="n">5,233</td><td class="n">1,898</td><td class="n">2.1 ms</td><td class="n">8.4 ms</td></tr>
-              <tr><td>0.07</td><td class="n">14,226</td><td class="n">3,866</td><td class="n">2.5 ms</td><td class="n">15.2 ms</td></tr>
+              <tr><td>0.25</td><td class="n">461</td><td class="n">314</td><td class="n">1.9 ms</td><td class="n">3.0 ms</td><td class="n">2.6 ms</td></tr>
+              <tr><td>0.15</td><td class="n">1,707</td><td class="n">848</td><td class="n">2.0 ms</td><td class="n">4.9 ms</td><td class="n">3.5 ms</td></tr>
+              <tr><td>0.10</td><td class="n">5,233</td><td class="n">1,898</td><td class="n">2.1 ms</td><td class="n">8.4 ms</td><td class="n">4.5 ms</td></tr>
+              <tr><td>0.07</td><td class="n">14,226</td><td class="n">3,866</td><td class="n">2.5 ms</td><td class="n">15.2 ms</td><td class="n">4.7 ms</td></tr>
             </tbody>
           </table>
         </div>
+        <figcaption>The Off and before-2.14 columns are the original measurement; the On column was re-measured for 2.14 on the same machine and cages, so read the last two against each other. The gain is 1.4&times; at Resolution 0.15 and 3.3&times; at 0.07: it grows with hull density.</figcaption>
       </figure>
 
-      <p>Only nodes on the surface of the cage take part, so the cost grows with the square of an area rather than of a volume. Every surface node is tested against every other one; there is no spatial hash, because integer images and <code>imageAtomicAdd</code> do not work in Blender's Python GPU API and a CPU-side hash would mean reading the whole cage back every frame.</p>
+      <p>Only nodes on the surface of the cage take part, so the cost grows with the square of an area rather than of a volume. <strong>2.14 added a broad phase</strong>: surface nodes are sorted along a Morton curve once, at rest, into blocks of 32 that each carry a bounding box, rebuilt from live positions every substep. Two image loads and a box test then skip 32 candidates at once. The box is expanded by exactly the thickness at which the node-against-node test stops rejecting, so a pair really in contact can never be skipped: the pass is bit-identical to not having it, which the suite checks rather than assumes. There is still no spatial hash, because integer images and <code>imageAtomicAdd</code> do not work in Blender's Python GPU API and a CPU-side hash would mean reading the whole cage back every frame.</p>
       <p><strong>Thickness</strong> is the contact gap, as a multiple of Resolution. 1.0 keeps the skinned render surface from visibly interpenetrating. Below about 1.0 a fold can slip between cage nodes, since contact is node against node and nothing checks the space between them.</p>
+      <div class="hazard">
+        <span class="lab"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 2 15 14H1Z"/><path d="M8 6.5v3.2"/><path d="M8 11.8v.2"/></svg>Below 0.71 it stops working</span>
+        <p>A surface point can sit at the centre of the opposing cell, <code>sqrt(2)/2</code> of a Resolution from the nearest node there, so a gap under that can be missed by every pair at once. Measured on two slabs at Resolution 0.05 pressed face to face and offset half a cell: Thickness 0.70 marked <strong>no</strong> nodes in contact where 1.00 marked 147. It reads exactly like Self Collision being switched off, and the panel now says so. Leave Thickness at 1.0 unless there is a reason not to.</p>
+      </div>
       <p>Parts of the body that are already close together in the <strong>rest</strong> pose are left alone. This is what stops the cage fighting its own tets, whose nodes sit exactly one Resolution apart, but it also means a shape authored with two surfaces already touching will let those two surfaces keep passing through each other.</p>
       <p>Fast motion can still tunnel: a node moving more than the thickness in one substep can cross to the far side before it is ever tested. Raise Substeps or Thickness if you see it.</p>
     </section>
@@ -1423,7 +1489,7 @@ footer {
       </ul>
 
       <h3>Ending a sticky stretch</h3>
-      <p>Material held by a sticky collider that pulls away necks without limit, because nothing else in the solver can fail. <strong>Stick Break</strong> ends it by releasing the contact, so the body drops away whole rather than necking and parting: measured on a 1 m sphere with a sticky plate lifted 1.55 m, every node released at 0.05 and at 0.15, and none released at 0.25; the useful range sits below about a quarter of the body, which is why the slider stops there. <strong>Failure</strong> ends it by giving way in the material instead, which is the one that leaves a neck. Neither produces a gap on its own; that is what <code>marrow_torn</code> and a Delete Geometry node are for.</p>
+      <p>Material held by a sticky collider that pulls away necks without limit, because nothing else in the solver can fail. <strong>Stick Break</strong> ends it by releasing the contact, so the body drops away whole rather than necking and parting: measured on a 1&nbsp;m block with a sticky plate lifted 0.8&nbsp;m, the body drops off at 0.02 and 0.05 and rides the plate up from 0.08, while pulling it off by hand with Drag frees it anywhere in the slider, since a lift pulls far more gently than a hand does. The useful range sits below about a quarter of the body, which is why the slider stops there. <strong>Failure</strong> ends it by giving way in the material instead, which is the one that leaves a neck. Neither produces a gap on its own; that is what <code>marrow_torn</code> and a Delete Geometry node are for.</p>
     </section>
 
     <section id="regions">
@@ -1740,7 +1806,7 @@ footer {
       <p>Tetrahedralize both bodies, then set Glue To on the follower and give it an Attach Stiffness. There is no second checkbox: naming a partner is what turns the pass on, since a fat layer has no armature of its own to tick Attachment for. A glued body stops reading its own modifier stack for targets and the partner supplies them instead. Attach Group still says where the grip is tight and where it is loose, and a <a href="#pinning">pin</a> still outranks both.</p>
       <p><strong>Glue is one way.</strong> The layer follows the partner; the partner never feels the layer. It is an attachment, not a two-way constraint, so a heavy fat layer does not drag on the muscle it hangs from. Turn on <strong>Collide With Bodies</strong> for the two-way half: the two compose, and glue does not replace contact.</p>
       <p><strong>Both bodies step together</strong>, at the group's highest Substeps, the same rule <a href="#twobodies">Colliding two bodies</a> follows. A partner left out of the group would stop advancing and leave the layer following a frozen pose.</p>
-      <p><strong>Baking one bakes the pair.</strong> Bake reads group membership off the scene rather than off the live sessions, and glue counts there too: a layer baked without its partner would have nothing to follow and would bake at rest.</p>
+      <p><strong>Baking one bakes the pair.</strong> Bake covers every Marrow body in the scene, read off the scene rather than off the live sessions, so a layer is never baked without the partner it follows, which would leave it baking at rest.</p>
       <p><strong>Targets are read once a frame and carried forward one frame.</strong> Once a frame is what collider transforms and armature targets already get; the difference here is that the partner is itself simulating, so the material read at the start of a frame is a frame stale. The carry-forward takes the step the partner just made and extends it. Measured on a sphere in free fall, one second in, at 24&nbsp;fps: without it the layer trailed the material it is bound to by 0.357&nbsp;m, with it by 0.014&nbsp;m.</p>
       <figure class="plate">
         <div class="plate-head">
@@ -1802,6 +1868,9 @@ footer {
     <section id="pinning">
       <h2>Pinning</h2>
       <p><strong>Pin Group</strong> holds material in place. Point it at a vertex group on the object and paint that group wherever the body must not move; weight 1.0 is a solid pin.</p>
+      <p><strong>Use multiple groups without making a combined vertex group.</strong> In <strong>Pin &gt; Additional Groups</strong>, click <strong>+</strong> and select another vertex group for each pin region. The original Pin Group remains active, so existing files keep their pins; it can also be left empty when using the list alone. Select a row and click <strong>&minus;</strong> to remove that slot without deleting its vertex group.</p>
+      <p>Overlapping groups use the highest weight at each render vertex, then the combined mask is blended onto the cage. Duplicate entries do not strengthen a pin, and empty or missing groups are ignored. Adding, removing or changing a slot during Live takes effect on the next frame; a baked simulation must be baked again.</p>
+      <p>For separate handles, give each region its own Hook modifier and Empty, and add each vertex group to Marrow's pins. Enable <strong>Attachment</strong> and <strong>Follows Animation</strong> with <strong>Attach Stiffness</strong> at 0 to move every region independently while the rest of the body follows elastically. <strong>Follows Animation is shared by all pin groups</strong>, not a per-slot setting. Play the timeline or bake the Hook animation: moving an Empty while playback is paused does not advance the simulation. <code>demos/multipin_creature.blend</code> and <code>demos/octopus_multipin_showcase.blend</code> are built this way.</p>
       <p>The group is painted on the render mesh, because that is the geometry you can see and select; cage nodes are interior lattice points and carry no vertex groups of their own. Each node reads the group through the same k-nearest-vertex map the attachment pass uses, so a node is held exactly when the surface around it is, and pinning works whether or not Attachment is on.</p>
       <p>A pin is zero inverse mass, and every pass in the solver already defers to it. Predict skips the gravity step, integrate holds the position and the velocity both, and the collider and attachment kernels each check it first: a pin outranks a collider, and a pin outranks the armature. Nothing pushes a pinned node anywhere.</p>
       <p><strong>A weight below 1.0 is not a partial hold.</strong> It scales inverse mass, so 0.5 is a node with twice the mass, not a node half held; gravity is an acceleration, so a heavy node still falls at g. What the falloff buys is the boundary. The blend across the edge of a painted region makes the transition nodes progressively heavier instead of dropping a hard mass discontinuity into the middle of the material, which shows as a stress ring. Paint the region you want held at a solid 1.0 and let the blend feather the edge.</p>
@@ -1902,7 +1971,7 @@ footer {
     <section id="longruns">
       <h2>Long runs</h2>
       <p><strong>Tetrahedralize and Bake report progress and can be cancelled.</strong> Both show the stage and a percentage in the status bar while they work, and <strong>Esc</strong> stops them. Neither blocks the window any more, so a dense cage no longer looks like a hang, which it did, and people killed Blender over it.</p>
-      <p>The two cancel differently, because the work is different. Esc during Tetrahedralize discards everything: nothing is written to the file until the cage is complete, so there is no half-built state to leave behind. Esc during a Bake <strong>keeps the frames it already simulated</strong>: the cache is keyed by frame, so a bake stopped at 96 of 250 is playable to 96 and is not a wasted wait.</p>
+      <p>The two cancel differently, because the work is different. Esc during Tetrahedralize discards the cage it was building: nothing is written to the file until that cage is complete, so there is no half-built state to leave behind. Over a selection it discards only the object in hand; the cages finished before it are already in the file and stay. Esc during a Bake <strong>keeps the frames it already simulated</strong>: the cache is keyed by frame, so a bake stopped at 96 of 250 is playable to 96 and is not a wasted wait.</p>
       <p>Cost scales sharply with Resolution: halving it is roughly eight times the cage. On a 34,000-vertex mesh, Resolution 0.25 builds in about 7 seconds, 0.12 in 22, and 0.08 in 66, and the voxel pass, which asks inside-or-outside about every cell in the bounding box, is most of that at fine settings. Tetrahedralize also names the cage size when it finishes, and warns there if the cage is over the node budget, rather than letting Bake be the first to mention it.</p>
       <p><code>tools/estimate_cage.py</code> reports what a setting will cost before you commit to it: run it from the Scripting tab with the object selected.</p>
     </section>
@@ -1916,14 +1985,15 @@ footer {
     <section id="limitations">
       <h2>Limitations</h2>
       <ul class="limits">
-        <li><strong>Contact is node against node only.</strong> No edge-edge or node-triangle contact, for either self-collision or body-to-body, and neither scales past roughly 20,000 surface nodes. Collision against a <em>collider</em> is a distance field and does not have this limit.</li>
-        <li><strong>A deforming collider is baked once</strong>, and features thinner than one SDF cell are missed. See <a href="#colliders">Colliders</a>.</li>
-        <li><strong>Friction does not ride a moving collider.</strong> Contact friction resists sliding, but it measures the node against a collider treated as still for the substep, so a plate sliding sideways under a body does not drag it along. Sticky is how a moving collider carries material. Self-collision and body-to-body both measure the pair properly and have no such limit.</li>
+        <li><strong>Self-collision and body-to-body contact are node against node only.</strong> They have no edge-edge or node-triangle contact and do not scale past roughly 20,000 surface nodes. Rigid <strong>Mesh</strong> colliders use a distance field; <strong>Animated Mesh</strong> instead tests body surface nodes against a low-poly triangle proxy, so its cost follows proxy triangles and body surface nodes.</li>
+        <li><strong>A rigid Mesh collider is baked once</strong>, and features thinner than one SDF cell are missed. Use <strong>Animated Mesh</strong> for an Armature, Shape Keys or topology-stable modifiers; its evaluated proxy is sampled every simulated frame. See <a href="#animatedmesh">Animated Mesh</a>.</li>
+        <li><strong>Rigid-collider friction does not ride a moving collider.</strong> For Sphere, Box, Capsule and rigid Mesh, Sticky is how a moving collider carries material. Animated Mesh is the exception: it measures relative triangle motion each substep, so friction can drag material without Sticky. Self-collision and body-to-body also measure relative motion.</li>
         <li><strong>A body must not start inside a sticky collider.</strong> See <a href="#sticky">Sticky colliders</a>. Only the ground plane depenetrates its starting state.</li>
         <li><strong>A live cache lives only in memory.</strong> Bakes are written beside the .blend and reload with it; a live cache is rebuilt as the timeline plays, which is what makes it free to throw away. See <a href="#diskcache">Baked caches on disk</a>.</li>
         <li><strong>Very thin features can still outrun the cage.</strong> The cage keeps every cell whose centre is inside the mesh, plus every cell holding a mesh vertex, so a feature thinner than a cell is covered as long as the mesh carries vertices there. What it does not cover is a large flat triangle spanning cells with no vertex in them, which is a coarse mesh rather than a thin one. Tetrahedralize warns when more than 1% of render vertices land more than a Resolution outside the cage and names how far the worst one is; those vertices are not simulated, they are glued to whichever tet was nearest and dragged by it. Subdivide the mesh, or lower Resolution.</li>
         <li><strong>Glue is one way and a frame coarse.</strong> A glued body follows its partner; the partner never feels it, and the targets are read once a frame and extrapolated rather than solved together. Two bodies that must push back on each other need Collide With Bodies as well. See <a href="#glue">Glue</a>.</li>
         <li><strong>No plasticity.</strong> Deformation is purely elastic: the rest shape is baked once and never drifts, so a dent springs back rather than staying dented. <code>mu</code> and <code>lam</code> vary per tet through a Stiffness Group, but every tet always wants its original shape.</li>
+        <li><strong>Quasistatic needs a soft material.</strong> Past roughly Stiffness 1e4 the solve is under-converged at any Iterations count, and a stiffer body reads as giving <em>further</em> rather than less. Measured against the float64 oracle, so it is the method and not the card. See <a href="#quasistatic">Quasistatic</a>.</li>
         <li><strong>Attachment weights are synthesized once</strong>, against the rest shape. Editing the mesh without re-tetrahedralizing leaves them stale, same rule as the bind data.</li>
         <li><strong>Measured on the OpenGL backend.</strong> Blender is moving to Vulkan, and the kernels need revalidating there.</li>
       </ul>
@@ -1966,7 +2036,7 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
       <h2>Licence</h2>
       <p>GPL-3.0-or-later.</p>
       <footer>
-        Marrow 2.15.0 · Blender 5.2<br>
+        Marrow 2.20.4 · Blender 5.2<br>
         Every number on this sheet was measured, not estimated.
       </footer>
     </section>
