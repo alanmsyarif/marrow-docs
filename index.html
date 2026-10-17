@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Documentation for Marrow 2.20.4, a GPU tetrahedral soft body system for Blender 5.2 built on neo-Hookean XPBD and GLSL compute shaders.">
+<meta name="description" content="Marrow 2.23.1: GPU tetrahedral soft body for Blender 5.2, with stable co-rotational XPBD, collisions, fibers and real-time rig-driven deformation.">
 <meta name="theme-color" content="#0C110F">
 <link rel="icon" href="/marrow-icon.svg" type="image/svg+xml">
-<title>Marrow 2.20.4 Handbook</title>
+<title>Marrow 2.23.1 Handbook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Schibsted+Grotesk:wght@500;700&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -268,6 +268,32 @@ h1 {
 }
 
 .sub em { color: var(--ochre); font-style: normal; }
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.hero-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink-2);
+  font: 700 11px/1.4 var(--display);
+  letter-spacing: .08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+
+.hero-action:hover { border-color: var(--ochre-dim); color: var(--ink); background: var(--ochre-wash); }
+.hero-action.primary { border-color: var(--ochre-dim); background: var(--ochre); color: var(--ground); }
+.hero-action.primary:hover { border-color: var(--ochre); background: var(--ink); }
 
 /* ---- plates -------------------------------------------------- */
 
@@ -818,7 +844,7 @@ footer {
   <aside class="key" id="key">
     <a class="colophon" href="#top">
       <b>Marrow</b>
-      <span>2.20.4 · Blender 5.2</span>
+      <span>2.23.1 · Blender 5.2</span>
     </a>
 
     <div class="sift">
@@ -860,6 +886,7 @@ footer {
         <a href="#sticky">Sticky colliders</a>
         <a href="#selfcollision">Self collision</a>
         <a href="#twobodies">Colliding two bodies</a>
+        <a href="#thrust">Thrust</a>
         <a href="#ground">Ground plane</a>
       </div>
       <div class="limb">
@@ -911,8 +938,12 @@ footer {
 
     <header class="frontispiece">
       <h1>Marrow</h1>
-      <p class="thesis">A soft body with a lattice inside it that leaves no marks on your mesh.</p>
-      <p class="sub">Marrow fills a mesh with a tetrahedral cage, solves a stable neo-Hookean XPBD system in GLSL compute shaders, and deforms the original render mesh by barycentric interpolation from that cage. Blender 5.2 ships XPBD for hair, cloth and particles and has <em>no volumetric soft body</em>; the legacy <code>SOFT_BODY</code> modifier is a surface spring lattice with no volume preservation.</p>
+      <p class="thesis">Volumetric soft bodies for Blender, solved on the GPU and ready for the shot.</p>
+      <p class="sub">Marrow fills a mesh with a tetrahedral cage, solves a stable co-rotational XPBD system in GLSL compute shaders, and deforms the original render mesh by barycentric interpolation from that cage. Get believable volume, contact, muscle fibers and rig-driven motion without replacing your topology or compiling a platform-specific extension.</p>
+      <div class="hero-actions" aria-label="Get started">
+        <a class="hero-action primary" href="#quickstart">Start in four steps <span aria-hidden="true">→</span></a>
+        <a class="hero-action" href="#demos">Browse example scenes <span aria-hidden="true">↗</span></a>
+      </div>
 
       <figure class="plate">
         <div class="plate-head">
@@ -1039,7 +1070,7 @@ footer {
 
     <section id="install">
       <h2>Install</h2>
-      <pre><code>blender --command extension install-file -r user_default --enable dist/marrow-2.20.4.zip</code></pre>
+      <pre><code>blender --command extension install-file -r user_default --enable dist/marrow-2.23.1.zip</code></pre>
       <p>Or in Blender: <strong>Edit &gt; Preferences &gt; Get Extensions &gt; Install from Disk</strong>.</p>
       <h4>Building from source</h4>
       <pre><code>blender --command extension build --source-dir marrow --output-dir dist</code></pre>
@@ -1275,7 +1306,9 @@ footer {
             <tr><td>Quasistatic</td><td>Solve for the equilibrium shape implied by the pose and discard inertia. No bounce, jiggle or overshoot. See <a href="#quasistatic">Quasistatic</a>.</td></tr>
             <tr><td>Iterations</td><td>Constraint sweeps per frame in Quasistatic, in place of Substeps.</td></tr>
             <tr><td>Step Scale</td><td>Multiplies the frame length for the quasistatic solve. Leave it at 1.0; values from 2.0 measured unstable. See <a href="#quasistatic">Quasistatic</a>.</td></tr>
-            <tr><td>Stiffness</td><td>Resistance to distortion (deviatoric compliance). Re-read every frame, so a driver can own it. See <a href="#rigstiffness">Rig-driven stiffness</a>.</td></tr>
+            <tr><td>Stiffness</td><td>Resistance to distortion (co-rotational deviatoric compliance). Re-read every frame, so a driver can own it. See <a href="#rigstiffness">Rig-driven stiffness</a>.</td></tr>
+            <tr><td>Thrust</td><td>Acceleration along the current fiber direction, following the body's deformed shape rather than its rest pose. See <a href="#thrust">Thrust</a>.</td></tr>
+            <tr><td>Top Speed</td><td>Caps fiber-driven motion by fading Thrust as a node approaches the target speed.</td></tr>
             <tr><td>Volume Preservation</td><td>Resistance to volume change (hydrostatic compliance). Re-read every frame, like Stiffness.</td></tr>
             <tr><td>Stiffness Group</td><td>Vertex group saying where the body is stiff. Scales both sliders above, per tet. See <a href="#regions">Per-region stiffness</a>.</td></tr>
             <tr><td>Softest</td><td>Stiffness multiplier where that group's weight is 0.</td></tr>
@@ -1727,6 +1760,14 @@ footer {
       <p>A torn tet loses its fiber along with its stiffness, so torn muscle does not pull.</p>
     </section>
 
+    <section id="thrust">
+      <h2>Thrust</h2>
+      <p>Fiber contraction changes a body's shape; it does not carry the body anywhere. <strong>Thrust</strong> adds the missing push: an acceleration along the current fiber direction, from the tail end towards the head. It follows the body's deformed shape every substep, so a coiled or bending body pushes along its coil instead of along the straight direction it had at rest.</p>
+      <p>Thrust alone does not make a snake climb. It drives the body around its coil, while contraction holds the coil and a rising <a href="#fields">Force field</a> gives it something to follow. A practical starting recipe is Fiber on, Bend 1, Phase 0.25, Amplitude 0.3, Thrust 20, friction 1 and a negative-strength attractor paced to the climb. The attractor must not outrun the body or it pulls the snake into a ball.</p>
+      <p><strong>Top Speed</strong> prevents runaway acceleration. As a node approaches the target speed, Marrow fades its Thrust contribution linearly; it never brakes a node that is already faster because of gravity or another force. Leave it at 0 for unlimited thrust, or set it to the speed the shot should sustain. It has no effect in Quasistatic mode, where nodes have no velocity.</p>
+      <p>Thrust is off with the Fiber toggle, and a cage tetrahedralized without a fiber curve has no node pairs to push along. Like the other fiber settings, it is a kernel uniform re-read every frame, so it can be keyed or driven without rebuilding the cage. <code>demos/pole_climb.blend</code> shows three paced variants beside controls.</p>
+    </section>
+
     <section id="muscle">
       <h2>Muscle arrangement</h2>
       <p>Fibers do not have to run along the body. <strong>Muscle</strong> picks one of the three arrangements a muscular hydrostat uses &ndash; a tentacle, a trunk, a worm &ndash; after Tan, Turk and Liu, <em>Soft Body Locomotion</em> (SIGGRAPH 2012). The solver never learns which is which: a fiber direction is an arbitrary unit vector in rest space either way, and what each arrangement <em>does</em> falls out of the volume-preservation constraint rather than a second mechanism.</p>
@@ -2036,7 +2077,7 @@ blender -b --factory-startup --python tests/blender/run_tests.py</code></pre>
       <h2>Licence</h2>
       <p>GPL-3.0-or-later.</p>
       <footer>
-        Marrow 2.20.4 · Blender 5.2<br>
+        Marrow 2.23.1 · Blender 5.2<br>
         Every number on this sheet was measured, not estimated.
       </footer>
     </section>
